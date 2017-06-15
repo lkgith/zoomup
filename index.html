@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<script src="./jquery-1.9.1.min.js"></script>
+</head>
+<body>
+    <style type="text/css">
+        .clearfix:after{
+            clear:both;
+            content:'\20';
+            height:0;
+            display:block
+        }
+        .hide{
+            display: none;
+        }
+        .small-pics{
+            width: 400px;
+            height: 60px;
+        }
+        .big-pic{
+            width: 100%;
+            height: 100%;
+        }
+        .pic{
+            width: 60px;
+            height: 60px;
+            float: left;
+            list-style: none;
+            margin-left: 10px;
+            cursor: url(./img/zoomUp.ico),auto;
+        }
+        .small-pics-preview .pic{
+            opacity: .5;
+            cursor: pointer;
+        }
+        .small-pics-preview .pic.selected{
+            opacity: 1;
+            border: 2px solid #380fdd;
+        }
+        .big-pic .pic{
+            width: 200px;
+            height: auto;
+        }
+        .big-pic .pic.rightCursor{
+            cursor: url(./img/rightCusor.ico),auto;
+        }
+        .big-pic .pic.leftCursor{
+            cursor: url(./img/leftCusor.ico),auto;
+        }
+        .big-pic .pic.middleCursor{
+            cursor: url(./img/zoomDwn.ico),auto;
+        }
+        img{
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <div class="small-pics" data-zoomup-list="1">
+        <ul class="clearfix">
+            <li class="pic" data-small-pic="./img/1.jpeg" data-big-pic="./img/11.jpeg" data-index="0"> 
+                <img src="./img/1.jpeg">
+            </li>
+            <li class="pic" data-small-pic="./img/2.jpeg" data-big-pic="./img/12.jpeg" data-index="1">
+                <img src="./img/2.jpeg">
+            </li>
+            <li class="pic" data-small-pic="./img/3.jpeg" data-big-pic="./img/13.jpeg" data-index="2">
+                <img src="./img/3.jpeg">
+            </li>
+            <li class="pic" data-small-pic="./img/4.jpeg" data-big-pic="./img/14.jpeg" data-index="3">
+                <img src="./img/4.jpeg">
+            </li>
+        </ul>
+    </div>
+
+    <div class="zoomup-wrap hide" data-zoomup-wrap-preview="1">
+        <div class="big-pic clearfix">
+            <div class="pic" data-zoomup-wrap-bigpic="1"></div>
+        </div>
+
+        <div class="small-pics-preview">
+            <ul class="clearfix" data-zoomup-wrap-smallpic="1">
+            </ul>
+        </div>
+    </div>
+    <script>
+        var zoomUpBase = {
+            init: function(opt){
+                this.opt = opt;
+                this.initData(opt);
+                this.initView();
+                this.bindEvent();
+            },
+            initData: function(opt){
+                var self = this;
+                this.imgList = [];
+                var imgEl = $(self.opt.smallEl).find(self.opt.smallItem);
+                var lens = imgEl.length;
+                for(var i = 0; i < lens; i++){
+                    var item = imgEl.eq(i);
+                    this.imgList.push({
+                        smallpic: item.data('small-pic'),
+                        bigpic: item.data('big-pic')
+                    });
+                }
+            },
+            initView: function(){
+                var small_tmp = '';
+                var self = this;
+                var curImg = this.imgList[self.opt.curIndex];
+                for(var i = 0; i < this.imgList.length; i++){
+                    var item = this.imgList[i];
+                    small_tmp += '<li class="pic" data-small-pic="' + item.smallpic + '" data-big-pic="' + item.bigpic + '" data-index="' + i + '"><img src="' + item.smallpic + '"></li>';
+                }
+                $(self.opt.target).find(self.opt.smallTarget).html(small_tmp);
+
+                this.switch(self.opt.curIndex);
+                $(self.opt.wrap).hide();
+                $(self.opt.smallEl).addClass('hide');
+                $(self.opt.target).removeClass('hide');
+            },
+            updateView: function(){
+                var self = this;
+                var curImg = this.imgList[self.opt.curIndex];
+                var big_tmp = '<img src="' + curImg['bigpic'] + '" data-small-pic="' + curImg['smallpic'] + '" data-big-pic="' + curImg['bigpic'] + '">'
+                $(self.opt.target).find(self.opt.bigTarget).html(big_tmp);
+                $(self.opt.target).find('.selected').removeClass('selected');
+                $(self.opt.target).find(self.opt.smallTarget).find('li').eq(self.opt.curIndex).addClass('selected');
+            },
+            switch: function(k){
+                this.opt.curIndex = k;
+                this.updateView();
+            },
+            zoomDown: function(){
+                $(this.opt.target).addClass('hide');
+                $(this.opt.smallEl).show();
+            },
+            bindEvent: function(){
+                var self = this;
+                var ret = self.opt.smallTarget + ' .pic';
+                $(ret).on('click', function(){
+                    var index = $(this).data('index');
+                    self.switch(index);
+                });
+                var el = $(self.opt.bigTarget);
+                var left = el.offset().left;
+                var width = el.width();
+                var leftSection = left + .33 * width;
+                var rightSection = leftSection + .33 * width;
+                el.on('mousemove', function(e){
+                    var x = e.pageX;
+                    var y = e.pageY;
+                    var selector = x > rightSection ? 'rightCursor' : x < leftSection ? 'leftCursor' : 'middleCursor';
+                    if(selector === 'rightCursor'){
+                        self.opt.curIndex === (self.imgList.length - 1) && (x = 'middleCursor');
+                    }
+                    else if(selector === 'leftCursor'){
+                        self.opt.curIndex === 0 && (x = 'middleCursor');
+                    }
+                    el.removeClass('rightCursor').removeClass('leftCursor').removeClass('middleCursor');
+                    el.addClass(selector);
+                });
+
+                el.on('click', function(){
+                    var curIndex = self.opt.curIndex;
+                    var index = $(this).hasClass('rightCursor') ? (curIndex + 1) : $(this).hasClass('leftCursor') ? (curIndex - 1) : -1;
+                    if((index === self.imgList.length) || (index === -1)){
+                        self.zoomDown();
+                    }
+                    else{
+                        self.switch(index);
+                    }
+                });
+
+            }
+
+        };
+        function zoomUp(opt) {
+            this.init(opt);
+        }
+        
+        $.extend(zoomUp.prototype, zoomUpBase);
+        var initedKey = [];
+        $('.small-pics .pic').on('click', function(){
+            var parent = $(this).closest('[data-zoomup-list]');
+            var key = parent.data('zoomup-list');
+            var curIndex = $(this).data('index');
+            var option = {
+                smallEl: '[data-zoomup-list="' + key + '"]',
+                smallItem: '[data-small-pic]',
+                target: '[data-zoomup-wrap-preview="' + key + '"]',
+                smallTarget: '[data-zoomup-wrap-smallpic="' + key + '"]',
+                bigTarget: '[data-zoomup-wrap-bigpic="' + key + '"]',
+                wrap: parent,
+                curIndex: curIndex
+            };
+            new zoomUp(option);
+        });
+    </script>
+</body>
+</html>
